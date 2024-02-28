@@ -147,6 +147,12 @@ const createClassEvent = (rowArr) => {
    // console.log("End:");
    // console.log(end);
 
+   // Misc Attributes
+   classEvent["alarms"] = { action: 'display', 
+                            description: 'Reminder', 
+                            trigger: { minutes: 10, before: true } } // 10 min reminder
+   classEvent["calName"] = "Class Schedule"
+
    return classEvent
 }
 
