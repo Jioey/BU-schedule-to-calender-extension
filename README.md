@@ -1,5 +1,5 @@
 ## Note
-Currently assumes semester lasts 14 weeks.
+Currently assumes semester lasts 16 weeks.
 
 # Development
 ## Setup

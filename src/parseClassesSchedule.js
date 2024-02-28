@@ -1,48 +1,5 @@
 import * as ics from 'ics'
 
-// CONVERT HTML TO EVENTS ------------------------------------------
-const generateClassesCalender = () => {
-   // init
-   let classes = [] // list for all classes
-
-   // Gets corresbonding table from website
-   let scheduleTable = document.getElementsByTagName("table")[4].lastChild
-
-   // Convert table and its rows to a 2-d array
-   // (Each element is a cell of a single <td> element)
-   let tableArr = convertHTMLTableToArray(scheduleTable)
-
-   console.log(tableArr);
-
-   // Create class from each row in tableArr
-   tableArr.forEach(row => {
-      classes.push(createClassEvent(row))
-   })
-
-   console.log(classes);
-
-   // TO ICS FILE
-   // convert classes array to ics formatting
-   let { error, value } = ics.createEvents(classes)
-
-   // handles ics error
-   if (error) {
-      console.log(error)
-   } else {
-      // create ics file
-      let blob = new Blob([value], { type: "text/calendar" });
-      // create url to host file
-      let url = URL.createObjectURL(blob)
-
-      // send message to background.js to download
-      chrome.runtime.sendMessage({
-         type: "downloadFile",
-         url: url
-      })
-   }
-}
-
-
 // HELPER FUNCTIONS -------------------------------------------
 /**
  * Removes weird HTML formatting from student link.
@@ -94,7 +51,7 @@ const convertHTMLTableToArray = (htmlTable) => {
 
 /**
  * Converts 12hr time to 24hr time
- * Courtesy Chris Dąbrowski on Stackoverflow
+ * Courtesy Chris Dąbrowski on Stack Overflow
  * @param {String} time12h 
  * @returns 
  */
@@ -117,9 +74,34 @@ const convertTime12to24 = (time12h) => {
 
 
 /**
+ * Adds weeks to a date 
+ * Courtesy Avnish Jayaswal on Stack Overflow
+ * @param {Date} date Starting date to add to
+ * @param {number} weeksToAdd Number of weeks to add
+ * @returns {Date} Date after weeks added
+ */
+const addWeekstoDate = (date, weeksToAdd) => {
+   // Convert weeks to milliseconds (1 week = 7 days)
+   let millisecondsInAWeek = 7 * 24 * 60 * 60 * 1000;
+   let totalMillisecondsToAdd = weeksToAdd * millisecondsInAWeek;
+
+   // Get the current timestamp of the date
+   let currentTimestamp = date.getTime();
+
+   // Calculate the new timestamp by adding milliseconds
+   let newTimestamp = currentTimestamp + totalMillisecondsToAdd;
+
+   // Set the new timestamp to the date
+   date.setTime(newTimestamp);
+
+   return date
+}
+
+
+/**
  * Parse one row of HTML element and returns an event object for ics package
  * @param {Array[<td>]} rowArr An array of a row in the table, 
- *    each element is in the following format:
+ *    each input element is in the following format:
  * <td>
  *    <font size="-1" color="#330000" face="Verdana, Helvetica, Arial, sans-serif">text</font>
  * </td>
@@ -147,31 +129,75 @@ const createClassEvent = (rowArr) => {
    while (day.length != 0) {
       rrule += "," + day.shift().slice(0, 2).toUpperCase()
    }
-   let numWeeks = 14; // Assumes 14 weeks in a semester
-   let endDate = new Date().setDate(startDate + numWeeks * 7);    // startDate injected from popup.js
-   endDate = endDate.toString().replace("-", "")
+   let numWeeks = 16; // Assumes 16 weeks in a semester
+   let endRepeat = addWeekstoDate(new Date(startDate), numWeeks)    // startDate injected from popup.js
+   endRepeat = "" + endRepeat.getFullYear() + (endRepeat.getMonth() + 1) + endRepeat.getDate()  // turn into one string
 
-   classEvent["recurrenceRule"] = "FREQ=WEEKLY;BYDAY=" + rrule + ";INTERVAL=1;UNTIL=" + endDate + "T000000Z"
+   classEvent["recurrenceRule"] = "FREQ=WEEKLY;BYDAY=" + rrule + ";INTERVAL=1;UNTIL=" + endRepeat + "T000000Z"
 
-   let start = startDate.concat(startTime.split(":"))    // adds time (e.g. ["8", "55"]) to startDate
+   let start = startDateList.concat(startTime.split(":"))    // adds time (e.g. ["8", "55"]) to startDate
    start.forEach((o, i, a) => a[i] = +a[i])              // turns each element to number
    classEvent["start"] = start                           // assigns start to class event object
-   console.log("Start:");
-   console.log(start);
+   // console.log("Start:");
+   // console.log(start);
 
-   let end = startDate.concat(endTime.split(":"))        // same parse as above
+   let end = startDateList.concat(endTime.split(":"))        // same parse as above
    end.forEach((o, i, a) => a[i] = +a[i])
    classEvent["end"] = end
-   console.log("End:");
-   console.log(end);
+   // console.log("End:");
+   // console.log(end);
 
    return classEvent
 }
 
+
+// Main Funcion: CONVERTS HTML TO EVENTS LIST ------------------------------------------
+const generateClassesCalender = () => {
+   // init
+   let classes = [] // list for all classes
+
+   // Gets corresbonding table from website
+   let scheduleTable = document.getElementsByTagName("table")[4].lastChild
+
+   // Convert table and its rows to a 2-d array
+   // (Each element is a cell of a single <td> element)
+   let tableArr = convertHTMLTableToArray(scheduleTable)
+
+   // console.log(tableArr);
+
+   // Create class from each row in tableArr
+   tableArr.forEach(row => {
+      classes.push(createClassEvent(row))
+   })
+
+   console.log("Classes: ");
+   console.log(classes);
+
+   // TO ICS FILE
+   // convert classes array to ics formatting
+   let { error, value } = ics.createEvents(classes)
+
+   // handles ics error
+   if (error) {
+      console.log(error)
+   } else {
+      // create ics file
+      let blob = new Blob([value], { type: "text/calendar" });
+      // create url to host file
+      let url = URL.createObjectURL(blob)
+
+      // send message to background.js to download
+      chrome.runtime.sendMessage({
+         type: "downloadFile",
+         url: url
+      })
+   }
+}
+
+
 // main calls to function
 console.log("Parse classes script injected");
-console.log(startDate);
-startDate = startDate.toString().split("-")  // turns date into ["2024", "2", "28"]
+var startDateList = startDate.toString().split("-")  // turns date into ["2024", "2", "28"]
 generateClassesCalender()
 
 
