@@ -92,9 +92,58 @@ const addWeekstoDate = (date, weeksToAdd) => {
    let newTimestamp = currentTimestamp + totalMillisecondsToAdd;
 
    // Set the new timestamp to the date
-   date.setTime(newTimestamp);
+   let endDate = new Date()
+   endDate.setTime(newTimestamp);
 
-   return date
+   return endDate
+}
+
+/**
+ * 
+ * @param {Date} date 
+ * @param {Array[String]} weekdayMatchList 
+ */
+const shiftDateToDayOfWeek = (date, weekdayMatchList) => {
+   let dateClone = structuredClone(date)
+   // Converts day in week to its numeric representation in Date datatype
+   weekdayMatchList.forEach((o, i, a) => {
+      switch (a[i]) {
+         case "Sun":
+            a[i] = 0
+            break;
+         case "Mon":
+            a[i] = 1
+            break;
+         case "Tue":
+            a[i] = 2
+            break;
+         case "Wed":
+            a[i] = 3
+            break;
+         case "Thu":
+            a[i] = 4
+            break;
+         case "Fri":
+            a[i] = 5
+            break;
+         case "Sat":
+            a[i] = 6
+            break;
+         default:
+            console.log("Day match failed in shiftDateToDayOfWeek()");
+            return dateClone
+      }
+   })
+   console.log("weekdayMatchList");
+   console.log(weekdayMatchList);
+
+   while (!weekdayMatchList.includes(dateClone.getDay())) {
+      dateClone.setDate(dateClone.getDate() + 1)
+   }
+
+   console.log("Shifted start date:");
+   console.log(dateClone);
+   return dateClone
 }
 
 
@@ -109,49 +158,59 @@ const addWeekstoDate = (date, weeksToAdd) => {
 const createClassEvent = (rowArr) => {
    let classEvent = {}
 
+   // Init strings from list of html tags
    let classCode = rowArr[0].innerText                   // "CAS CS210 A1"
    let titleAndProf = rowArr[4].innerText.split("\n")    // ["Comp Systems", "Narayanan"]
    let classType = rowArr[6].innerText                   // "Lecture"
 
    let classLocation = rowArr[7].innerText + " " + rowArr[8].innerText  // "LAW 101"
 
-   let day = rowArr[9].innerText.split(",")              // ["Tue", "Thu"]
+   let dayOfWeek = rowArr[9].innerText.split(",")              // ["Tue", "Thu"]
    let startTime = convertTime12to24(rowArr[10].innerText)// "12:30pm" but in 24hr
    let endTime = convertTime12to24(rowArr[11].innerText) // "1:45pm" but in 24hr
 
+   // Assign Class Name + Type
    classEvent["title"] = classCode.substr(classCode.indexOf(" ") + 1) + " " + titleAndProf[0] + " " + classType
 
+   // Assign Class Location
    classEvent["location"] = classLocation
 
-   // turn "day" list into rrule fragment
-   // visit https://freetools.textmagic.com/rrule-generator to learn more
-   let rrule = day.shift().slice(0, 2).toUpperCase()
-   while (day.length != 0) {
-      rrule += "," + day.shift().slice(0, 2).toUpperCase()
+   // Assign Recurrence Rule
+   // Turn "day" list into rrule fragment (visit https://freetools.textmagic.com/rrule-generator to learn more)
+   let dayOfWeekClone = structuredClone(dayOfWeek);   // make deep copy of dayOfWeek to use for rrule
+   let rrule = dayOfWeekClone.shift().slice(0, 2).toUpperCase()
+   while (dayOfWeekClone.length != 0) {
+      rrule += "," + dayOfWeekClone.shift().slice(0, 2).toUpperCase()
    }
    let numWeeks = 16; // Assumes 16 weeks in a semester
-   let endRepeat = addWeekstoDate(new Date(startDate), numWeeks)    // startDate injected from popup.js
-   endRepeat = "" + endRepeat.getFullYear() + (endRepeat.getMonth() + 1) + endRepeat.getDate()  // turn into one string
+   let endRepeat = addWeekstoDate(startDateDate, numWeeks)    // startDate injected from popup.js
+   endRepeat = endRepeat.toISOString().split('T')[0].replaceAll("-", "")  // turn into "yyyymmdd" format
 
    classEvent["recurrenceRule"] = "FREQ=WEEKLY;BYDAY=" + rrule + ";INTERVAL=1;UNTIL=" + endRepeat + "T000000Z"
 
+   // Assign Class Start Time
+   let classFirstDate = shiftDateToDayOfWeek(startDateDate, dayOfWeek) // Moves starting day to correct day of week
+   classFirstDate.setDate(classFirstDate.getDate() - 1)      // I don't know why but the dates are all a day after the correct place for some reason
+   let startDateList = classFirstDate.toISOString().split('T')[0].split("-")   // turns date into ["2024", "2", "28"]
    let start = startDateList.concat(startTime.split(":"))    // adds time (e.g. ["8", "55"]) to startDate
-   start.forEach((o, i, a) => a[i] = +a[i])              // turns each element to number
-   classEvent["start"] = start                           // assigns start to class event object
-   // console.log("Start:");
-   // console.log(start);
+   start.forEach((o, i, a) => a[i] = +a[i])                  // turns each element to number
+   classEvent["start"] = start                               // assigns start to class event object
+   console.log("Start:");
+   console.log(start);
 
+   // Assign Class End Time
    let end = startDateList.concat(endTime.split(":"))        // same parse as above
    end.forEach((o, i, a) => a[i] = +a[i])
    classEvent["end"] = end
-   // console.log("End:");
-   // console.log(end);
+   console.log("End:");
+   console.log(end);
 
-   // Misc Attributes
-   classEvent["alarms"] = { action: 'display', 
-                            description: 'Reminder', 
-                            trigger: { minutes: 10, before: true } } // 10 min reminder
-   classEvent["calName"] = "Class Schedule"
+   // Assign Misc Attributes
+   classEvent["alarms"] = [{
+      action: 'display',
+      description: 'Reminder',
+      trigger: { minutes: 10, before: true }
+   }] // 10 min reminder
 
    return classEvent
 }
@@ -203,7 +262,9 @@ const generateClassesCalender = () => {
 
 // main calls to function
 console.log("Parse classes script injected");
-var startDateList = startDate.toString().split("-")  // turns date into ["2024", "2", "28"]
+var startDateDate = new Date(startDate)
+startDateDate.setDate(startDateDate.getDate() + 1)  // need to increment date bc Date constructor is weird
+console.log(startDateDate);
 generateClassesCalender()
 
 
