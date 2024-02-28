@@ -1,5 +1,4 @@
-console.log("background is working");
-
+// adds listener for download messages
 chrome.runtime.onMessage.addListener((obj, sender, response) => {
    const { type, url } = obj;
 
@@ -13,3 +12,5 @@ chrome.runtime.onMessage.addListener((obj, sender, response) => {
       });
    }
 });
+
+console.log("background is working");

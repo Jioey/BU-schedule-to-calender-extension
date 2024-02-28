@@ -34,6 +34,11 @@ const cleanTableArray = (tableArr) => {
 }
 
 
+/**
+ * Converts cleaned HTML table into a nested array
+ * @param {HTMLCollection} htmlTable 
+ * @returns A nested array where each element is a <td> tag
+ */
 const convertHTMLTableToArray = (htmlTable) => {
    // turn table into array
    let tableArr = Array.from(htmlTable.children)
@@ -99,12 +104,14 @@ const addWeekstoDate = (date, weeksToAdd) => {
 }
 
 /**
- * 
- * @param {Date} date 
- * @param {Array[String]} weekdayMatchList 
+ * Finds the first day of the week starting from @param date that is in @param weekdayMatchList
+ * @param {Date} date Starting date of the search
+ * @param {Array[String]} weekdayMatchList List of string representing days of the week (e.g. ["Tue", "Thu"])
  */
 const shiftDateToDayOfWeek = (date, weekdayMatchList) => {
+   // deep clone the date object
    let dateClone = structuredClone(date)
+
    // Converts day in week to its numeric representation in Date datatype
    weekdayMatchList.forEach((o, i, a) => {
       switch (a[i]) {
@@ -134,19 +141,17 @@ const shiftDateToDayOfWeek = (date, weekdayMatchList) => {
             return dateClone
       }
    })
-   console.log("weekdayMatchList");
-   console.log(weekdayMatchList);
 
+   // Increment date until finds a matching day
    while (!weekdayMatchList.includes(dateClone.getDay())) {
       dateClone.setDate(dateClone.getDate() + 1)
    }
 
-   console.log("Shifted start date:");
-   console.log(dateClone);
    return dateClone
 }
 
 
+// MAIN FUNCTIONS -------------------------------------------
 /**
  * Parse one row of HTML element and returns an event object for ics package
  * @param {Array[<td>]} rowArr An array of a row in the table, 
@@ -156,7 +161,7 @@ const shiftDateToDayOfWeek = (date, weekdayMatchList) => {
  * </td>
  */
 const createClassEvent = (rowArr) => {
-   let classEvent = {}
+   let classEvent = {}  // init event
 
    // Init strings from list of html tags
    let classCode = rowArr[0].innerText                   // "CAS CS210 A1"
@@ -178,14 +183,16 @@ const createClassEvent = (rowArr) => {
    // Assign Recurrence Rule
    // Turn "day" list into rrule fragment (visit https://freetools.textmagic.com/rrule-generator to learn more)
    let dayOfWeekClone = structuredClone(dayOfWeek);   // make deep copy of dayOfWeek to use for rrule
-   let rrule = dayOfWeekClone.shift().slice(0, 2).toUpperCase()
+   let rrule = dayOfWeekClone.shift().slice(0, 2).toUpperCase()   // pops first day-of-week and converts to rrule format
+   // Adds the rest of the days in dayOfWeekClone
    while (dayOfWeekClone.length != 0) {
-      rrule += "," + dayOfWeekClone.shift().slice(0, 2).toUpperCase()
+      rrule += "," + dayOfWeekClone.shift().slice(0, 2).toUpperCase()   
    }
    let numWeeks = 16; // Assumes 16 weeks in a semester
    let endRepeat = addWeekstoDate(startDateDate, numWeeks)    // startDate injected from popup.js
    endRepeat = endRepeat.toISOString().split('T')[0].replaceAll("-", "")  // turn into "yyyymmdd" format
 
+   // Creates and adds rrule string
    classEvent["recurrenceRule"] = "FREQ=WEEKLY;BYDAY=" + rrule + ";INTERVAL=1;UNTIL=" + endRepeat + "T000000Z"
 
    // Assign Class Start Time
@@ -195,33 +202,31 @@ const createClassEvent = (rowArr) => {
    let start = startDateList.concat(startTime.split(":"))    // adds time (e.g. ["8", "55"]) to startDate
    start.forEach((o, i, a) => a[i] = +a[i])                  // turns each element to number
    classEvent["start"] = start                               // assigns start to class event object
-   console.log("Start:");
-   console.log(start);
 
    // Assign Class End Time
    let end = startDateList.concat(endTime.split(":"))        // same parse as above
    end.forEach((o, i, a) => a[i] = +a[i])
    classEvent["end"] = end
-   console.log("End:");
-   console.log(end);
 
-   // Assign Misc Attributes
+   // Assign alert (10 min before)
    classEvent["alarms"] = [{
       action: 'display',
       description: 'Reminder',
       trigger: { minutes: 10, before: true }
-   }] // 10 min reminder
+   }]
 
    return classEvent
 }
 
 
-// Main Funcion: CONVERTS HTML TO EVENTS LIST ------------------------------------------
+/**
+ * Main function to be called: Converts raw HTML to ics then sends url to background for download.
+ */
 const generateClassesCalender = () => {
    // init
    let classes = [] // list for all classes
 
-   // Gets corresbonding table from website
+   // Gets corresbonding html table from current tab
    let scheduleTable = document.getElementsByTagName("table")[4].lastChild
 
    // Convert table and its rows to a 2-d array
@@ -232,26 +237,28 @@ const generateClassesCalender = () => {
 
    // Create class from each row in tableArr
    tableArr.forEach(row => {
+      // runs createClassEvent on every html row
       classes.push(createClassEvent(row))
    })
 
+   // Logs final results
    console.log("Classes: ");
    console.log(classes);
 
-   // TO ICS FILE
-   // convert classes array to ics formatting
+   // Converts classes array to ics formatting
    let { error, value } = ics.createEvents(classes)
 
-   // handles ics error
+   // Sends url to background.js for download
    if (error) {
+      // Handles ics package error
       console.log(error)
    } else {
-      // create ics file
+      // Create ics file
       let blob = new Blob([value], { type: "text/calendar" });
-      // create url to host file
+      // Create url to host file
       let url = URL.createObjectURL(blob)
 
-      // send message to background.js to download
+      // Sends message to background, with url
       chrome.runtime.sendMessage({
          type: "downloadFile",
          url: url
@@ -260,12 +267,14 @@ const generateClassesCalender = () => {
 }
 
 
-// main calls to function
+// Main function calls
 console.log("Parse classes script injected");
-var startDateDate = new Date(startDate)
+
+var startDateDate = new Date(startDate)  // converts string from popup to Date type
 startDateDate.setDate(startDateDate.getDate() + 1)  // need to increment date bc Date constructor is weird
-console.log(startDateDate);
-generateClassesCalender()
+console.log("Start date input: " + startDateDate);
+
+generateClassesCalender()  // calls main question
 
 
 // ics input format:

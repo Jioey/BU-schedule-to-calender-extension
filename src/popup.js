@@ -1,4 +1,4 @@
-// Add listener to popup
+// Adds listener to popup
 document.addEventListener("DOMContentLoaded", async () => {
    let activeTab = await getActiveTabURL();
 
@@ -27,12 +27,15 @@ export async function getActiveTabURL() {
    return tabs[0];
 }
 
-// send message to contentScript
+// onClick event: Injects parseClassesSchedule to current tab
 const onClassesDownload = async () => {
+   // Gets user's current tab url
    let activeTab = await getActiveTabURL()
 
+   // Gets html input from popup page
    let startDate = document.getElementById("inputTag").value
 
+   // Creates startDate variable then injects script
    chrome.scripting.executeScript({
       target: {tabId: activeTab.id},
       args: [{startDate: startDate}],
@@ -46,23 +49,35 @@ const onClassesDownload = async () => {
 
 };
 
-// Adds functionality to control buttons
+/**
+ * Creates download button and assgins it to a @param eventListener
+ * @param {String} icon Image name to use as icon
+ * @param {String} title String to use as hover title
+ * @param {Function} eventListener Function assigned to button
+ * @param {HTMLElement} parentElement Parent element to assign the button to
+ */
 const setButtonControl = (icon, title, eventListener, parentElement) => {
+   // Creates HTML element
    let controlElement = document.createElement("img")
 
+   // Adds icon and hover title
    controlElement.src = "assets/" + icon + ".png"
    controlElement.title = title
 
+   // Adds event listenter
    controlElement.addEventListener("click", eventListener)
-   // TODO: style download button: controlElement.style = ""
+   // TODO?: style download button: controlElement.style = ""
+   // Appends to parent
    parentElement.appendChild(controlElement)
 };
 
+// Creates date picker (html input)
 const setDateInput = (parentElement) => {
+   // Creates input element
    let inputElement = document.createElement("input")
 
    inputElement.type = "date"
-   inputElement.valueAsDate = new Date();
+   inputElement.valueAsDate = new Date();  // default date
    inputElement.id = "inputTag"
 
    parentElement.appendChild(inputElement)
