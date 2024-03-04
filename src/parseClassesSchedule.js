@@ -154,6 +154,8 @@ const shiftDateToDayOfWeek = (date, weekdayMatchList) => {
 // MAIN FUNCTIONS -------------------------------------------
 /**
  * Parse one row of HTML element and returns an event object for ics package
+ * NOTE: This function is very messy and hard-coded. I recommend looking over the student link page's html structure
+ *    before trying to understand this mess. 
  * @param {Array[<td>]} rowArr An array of a row in the table, 
  *    each input element is in the following format:
  * <td>
@@ -164,7 +166,7 @@ const createClassEvent = (rowArr) => {
    let classEvent = {}  // init event
 
    // Init strings from list of html tags
-   let classCode = rowArr[0].innerText                   // "CAS CS210 A1"
+   let classCode = rowArr[0].lastChild.innerHTML.replaceAll("&nbsp;", " ")  // "CAS CS210 A1" (.innerText was buggy)
    let titleAndProf = rowArr[4].innerText.split("\n")    // ["Comp Systems", "Narayanan"]
    let classType = rowArr[6].innerText                   // "Lecture"
 
@@ -175,6 +177,7 @@ const createClassEvent = (rowArr) => {
    let endTime = convertTime12to24(rowArr[11].innerText) // "1:45pm" but in 24hr
 
    // Assign Class Name + Type
+   // classCode.substr(classCode.indexOf("&nbsp;") + 1) removes the College from the name
    classEvent["title"] = classCode.substr(classCode.indexOf(" ") + 1) + " " + titleAndProf[0] + " " + classType
 
    // Assign Class Location
