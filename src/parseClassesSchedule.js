@@ -137,8 +137,7 @@ const shiftDateToDayOfWeek = (date, weekdayMatchList) => {
             a[i] = 6
             break;
          default:
-            console.log("Day match failed in shiftDateToDayOfWeek()");
-            return dateClone
+            throw "Day match failed in shiftDateToDayOfWeek()"
       }
    })
 
@@ -240,8 +239,13 @@ const generateClassesCalender = () => {
 
    // Create class from each row in tableArr
    tableArr.forEach(row => {
-      // runs createClassEvent on every html row
-      classes.push(createClassEvent(row))
+      try {
+         // runs createClassEvent on every html row and add to classes list
+         classes.push(createClassEvent(row))
+      } catch (error) {
+         // handles when class fails to be created from the html
+         console.log("Failed to add class: " + error);
+      }
    })
 
    // Logs final results
