@@ -3,8 +3,7 @@ var __webpack_exports__ = {};
 /*!***************************!*\
   !*** ./src/background.js ***!
   \***************************/
-console.log("background is working");
-
+// adds listener for download messages
 chrome.runtime.onMessage.addListener((obj, sender, response) => {
    const { type, url } = obj;
 
@@ -14,10 +13,12 @@ chrome.runtime.onMessage.addListener((obj, sender, response) => {
       // downloads file from url
       chrome.downloads.download({
          url: url, // The object URL can be used as download URL
-         filename: "Classes Schedule.ics"
+         filename: "Class Schedule.ics"
       });
    }
 });
+
+console.log("background is working");
 /******/ })()
 ;
 //# sourceMappingURL=background.bundle.js.map
