@@ -4414,7 +4414,6 @@ const createClassEvent = (rowArr) => {
 
    // Assign Class Start Time
    let classFirstDate = shiftDateToDayOfWeek(startDateDate, dayOfWeek) // Moves starting day to correct day of week
-   classFirstDate.setDate(classFirstDate.getDate() - 1)      // I don't know why but the dates are all a day after the correct place for some reason
    let startDateList = classFirstDate.toISOString().split('T')[0].split("-")   // turns date into ["2024", "2", "28"]
    let start = startDateList.concat(startTime.split(":"))    // adds time (e.g. ["8", "55"]) to startDate
    start.forEach((o, i, a) => a[i] = +a[i])                  // turns each element to number
