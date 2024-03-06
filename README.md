@@ -20,6 +20,9 @@ The project is created in Spring 2024 for the intern process of UPE ([check us o
 * Windows Calendar: Right click on the file --> Open with.. --> Calendar (or Outlook)
 * Apple Calendar Import Instructions: Double-clicking on the file should open the schedule in the Calendar app. If not, [here are more instructions from Apple](https://support.apple.com/guide/calendar/import-or-export-calendars-icl1023/mac).
 
+## Video Demo
+https://github.com/Jioey/BU-schedule-to-calender-extension/assets/55892851/f68e25e8-2d51-43fd-b628-2a34bec325a3
+
 # Development
 Tech stack: Manifest.js V3, [Chrome Extension API](https://developer.chrome.com/docs/extensions/reference/api), and Node.js (Webpack and [ics](https://www.npmjs.com/package/ics) packages)
 ### Installing dependencies
